@@ -1187,12 +1187,16 @@ h1 {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 2000;
+  z-index: 3000;
   background: rgba(0, 0, 0, 0.72);
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   padding: var(--spacing-sm);
+}
+
+.modal-overlay.is-open {
+  display: flex;
 }
 
 .modal-overlay[hidden] {

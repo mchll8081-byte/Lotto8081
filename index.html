@@ -971,6 +971,7 @@
     const signupForm = document.getElementById('signupForm');
     const signupFormError = document.getElementById('signupFormError');
     const signupDoneMessage = document.getElementById('signupDoneMessage');
+    let signupPromptTimer = null;
 
     function showSignupStep(step) {
       signupStepPrompt.hidden = step !== 'prompt';
@@ -982,18 +983,25 @@
       showSignupStep('prompt');
       signupForm.reset();
       signupFormError.hidden = true;
-      signupModal.hidden = false;
+      signupModal.removeAttribute('hidden');
+      signupModal.classList.add('is-open');
       document.body.style.overflow = 'hidden';
     }
 
     function closeSignupModal() {
-      signupModal.hidden = true;
+      signupModal.classList.remove('is-open');
+      signupModal.setAttribute('hidden', '');
       document.body.style.overflow = '';
     }
 
     function scheduleSignupPrompt() {
-      if (sessionStorage.getItem('signupDismissed') || localStorage.getItem('signupComplete')) return;
-      setTimeout(openSignupModal, 900);
+      if (localStorage.getItem('signupComplete')) return;
+
+      if (signupPromptTimer) clearTimeout(signupPromptTimer);
+      signupPromptTimer = setTimeout(() => {
+        signupPromptTimer = null;
+        openSignupModal();
+      }, 900);
     }
 
     function validatePhone(phone) {
@@ -1013,21 +1021,12 @@
     });
 
     document.getElementById('signupYesBtn').addEventListener('click', () => showSignupStep('form'));
-    document.getElementById('signupNoBtn').addEventListener('click', () => {
-      sessionStorage.setItem('signupDismissed', '1');
-      closeSignupModal();
-    });
-    document.getElementById('signupModalClose').addEventListener('click', () => {
-      sessionStorage.setItem('signupDismissed', '1');
-      closeSignupModal();
-    });
+    document.getElementById('signupNoBtn').addEventListener('click', closeSignupModal);
+    document.getElementById('signupModalClose').addEventListener('click', closeSignupModal);
     document.getElementById('signupDoneBtn').addEventListener('click', closeSignupModal);
 
     signupModal.addEventListener('click', (e) => {
-      if (e.target === signupModal) {
-        sessionStorage.setItem('signupDismissed', '1');
-        closeSignupModal();
-      }
+      if (e.target === signupModal) closeSignupModal();
     });
 
     signupForm.addEventListener('submit', async (e) => {
