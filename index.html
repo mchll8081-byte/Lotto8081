@@ -95,6 +95,49 @@
       <div class="history-list" id="historyList"></div>
     </section>
 
+    <section class="testimonials">
+      <div class="testimonials-header">
+        <p class="caption-upper">Winner Stories</p>
+        <h2>이용 후기</h2>
+        <p class="testimonials-sub">AI 번호 추천 서비스를 이용한 회원들의 이야기입니다</p>
+      </div>
+      <div class="testimonials-grid">
+        <article class="review-card">
+          <div class="review-badge">1등 당첨</div>
+          <p class="review-text">「AI 번호 추천」으로 받은 번호 그대로 구매했는데 1등에 당첨됐어요! 출생년도와 통계를 반영해 준다는 게 신기했고, 설명도 자세해서 믿고 이용했습니다.</p>
+          <div class="review-author">
+            <span class="review-name">김민수</span>
+            <span class="review-meta">38세 · 서울 · 2025년 11월</span>
+          </div>
+        </article>
+        <article class="review-card">
+          <div class="review-badge">1등 당첨</div>
+          <p class="review-text">매주 AI 추천 번호를 받아보고 있는데, 드디어 1등 당첨의 꿈을 이뤘습니다. 역대 고빈도 번호 분석이 정말 도움이 됐어요. 주변에도 추천하고 있습니다!</p>
+          <div class="review-author">
+            <span class="review-name">이지영</span>
+            <span class="review-meta">45세 · 부산 · 2026년 1월</span>
+          </div>
+        </article>
+        <article class="review-card">
+          <div class="review-badge">1등 당첨</div>
+          <p class="review-text">처음엔 반신반의했는데, AI가 추천한 번호로 1등에 당첨됐습니다. 출생년도 기반 추천이 저한테 맞는 것 같아요. 가입하길 정말 잘했습니다.</p>
+          <div class="review-author">
+            <span class="review-name">박준호</span>
+            <span class="review-meta">52세 · 대구 · 2025년 9월</span>
+          </div>
+        </article>
+        <article class="review-card">
+          <div class="review-badge">1등 당첨</div>
+          <p class="review-text">동행복권 통계와 AI 분석을 결합한 추천이 인상적이었어요. 3회 추천 받은 뒤 1등 당첨! 번호마다 추천 이유를 알려줘서 더 신뢰가 갔습니다.</p>
+          <div class="review-author">
+            <span class="review-name">최소라</span>
+            <span class="review-meta">29세 · 인천 · 2026년 3월</span>
+          </div>
+        </article>
+      </div>
+      <p class="testimonials-disclaimer">※ 위 후기는 서비스 홍보를 위한 예시 콘텐츠입니다.</p>
+    </section>
+
   </div>
 
   <section class="band-light">
@@ -157,6 +200,51 @@
         <input type="text" id="chatInput" class="text-input chat-input" placeholder="추가 질문을 입력하세요..." maxlength="500" autocomplete="off">
         <button type="submit" class="btn-outline chat-send">전송</button>
       </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="signupModal" hidden>
+    <div class="modal-card" role="dialog" aria-labelledby="signupModalTitle" aria-modal="true">
+      <button type="button" class="modal-close" id="signupModalClose" aria-label="닫기">×</button>
+
+      <div class="modal-step" id="signupStepPrompt">
+        <p class="caption-upper">AI Lotto Premium</p>
+        <h2 id="signupModalTitle" class="modal-title">AI 추천 서비스에 가입하시겠어요?</h2>
+        <p class="modal-desc">매주 출생년도와 역대 당첨 통계를 반영한 AI 맞춤 번호를 받아보세요. 1등 당첨 후기를 남긴 회원들이 많습니다.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn-draw" id="signupYesBtn">네, 가입할게요</button>
+          <button type="button" class="btn-outline modal-btn-secondary" id="signupNoBtn">나중에 할게요</button>
+        </div>
+      </div>
+
+      <div class="modal-step" id="signupStepForm" hidden>
+        <p class="caption-upper">Membership</p>
+        <h2 class="modal-title">서비스 가입</h2>
+        <p class="modal-desc">아래 정보를 입력하시면 AI 번호 추천 서비스 안내를 보내드립니다.</p>
+        <form class="signup-form" id="signupForm">
+          <div class="form-field">
+            <label for="signupName">이름</label>
+            <input type="text" id="signupName" class="text-input" placeholder="홍길동" required maxlength="20" autocomplete="name">
+          </div>
+          <div class="form-field">
+            <label for="signupPhone">전화번호</label>
+            <input type="tel" id="signupPhone" class="text-input" placeholder="010-1234-5678" required maxlength="13" autocomplete="tel">
+          </div>
+          <div class="form-field">
+            <label for="signupEmail">이메일</label>
+            <input type="email" id="signupEmail" class="text-input" placeholder="example@email.com" required maxlength="60" autocomplete="email">
+          </div>
+          <p class="field-error" id="signupFormError" hidden></p>
+          <button type="submit" class="btn-draw signup-submit">가입 신청하기</button>
+        </form>
+      </div>
+
+      <div class="modal-step" id="signupStepDone" hidden>
+        <p class="modal-done-icon">✓</p>
+        <h2 class="modal-title">가입 신청이 완료되었습니다!</h2>
+        <p class="modal-desc" id="signupDoneMessage">AI 번호 추천 서비스 안내를 곧 보내드릴게요.</p>
+        <button type="button" class="btn-draw" id="signupDoneBtn">확인</button>
+      </div>
     </div>
   </div>
 
@@ -694,6 +782,8 @@
         <div class="history-balls chat-rec-balls">${renderBalls(data.main, data.bonus)}</div>
         <p class="chat-rec-explanation">${escapeHtml(data.explanation)}</p>
       `);
+
+      scheduleSignupPrompt();
     }
 
     function setChatLoading(active) {
@@ -871,6 +961,107 @@
       const text = chatInput.value.trim();
       if (!text) return;
       requestRecommendation(text);
+    });
+
+    /* ── 가입 팝업 ── */
+    const signupModal = document.getElementById('signupModal');
+    const signupStepPrompt = document.getElementById('signupStepPrompt');
+    const signupStepForm = document.getElementById('signupStepForm');
+    const signupStepDone = document.getElementById('signupStepDone');
+    const signupForm = document.getElementById('signupForm');
+    const signupFormError = document.getElementById('signupFormError');
+    const signupDoneMessage = document.getElementById('signupDoneMessage');
+
+    function showSignupStep(step) {
+      signupStepPrompt.hidden = step !== 'prompt';
+      signupStepForm.hidden = step !== 'form';
+      signupStepDone.hidden = step !== 'done';
+    }
+
+    function openSignupModal() {
+      showSignupStep('prompt');
+      signupForm.reset();
+      signupFormError.hidden = true;
+      signupModal.hidden = false;
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeSignupModal() {
+      signupModal.hidden = true;
+      document.body.style.overflow = '';
+    }
+
+    function scheduleSignupPrompt() {
+      if (sessionStorage.getItem('signupDismissed') || localStorage.getItem('signupComplete')) return;
+      setTimeout(openSignupModal, 900);
+    }
+
+    function validatePhone(phone) {
+      const digits = phone.replace(/\D/g, '');
+      return /^01[016789]\d{7,8}$/.test(digits);
+    }
+
+    function formatPhoneInput(value) {
+      const digits = value.replace(/\D/g, '').slice(0, 11);
+      if (digits.length <= 3) return digits;
+      if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+      return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+    }
+
+    document.getElementById('signupPhone').addEventListener('input', (e) => {
+      e.target.value = formatPhoneInput(e.target.value);
+    });
+
+    document.getElementById('signupYesBtn').addEventListener('click', () => showSignupStep('form'));
+    document.getElementById('signupNoBtn').addEventListener('click', () => {
+      sessionStorage.setItem('signupDismissed', '1');
+      closeSignupModal();
+    });
+    document.getElementById('signupModalClose').addEventListener('click', () => {
+      sessionStorage.setItem('signupDismissed', '1');
+      closeSignupModal();
+    });
+    document.getElementById('signupDoneBtn').addEventListener('click', closeSignupModal);
+
+    signupModal.addEventListener('click', (e) => {
+      if (e.target === signupModal) {
+        sessionStorage.setItem('signupDismissed', '1');
+        closeSignupModal();
+      }
+    });
+
+    signupForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      signupFormError.hidden = true;
+
+      const name = document.getElementById('signupName').value.trim();
+      const phone = document.getElementById('signupPhone').value.trim();
+      const email = document.getElementById('signupEmail').value.trim();
+
+      if (name.length < 2) {
+        signupFormError.textContent = '이름을 2자 이상 입력해 주세요.';
+        signupFormError.hidden = false;
+        return;
+      }
+      if (!validatePhone(phone)) {
+        signupFormError.textContent = '올바른 전화번호 형식(010-0000-0000)을 입력해 주세요.';
+        signupFormError.hidden = false;
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        signupFormError.textContent = '올바른 이메일 주소를 입력해 주세요.';
+        signupFormError.hidden = false;
+        return;
+      }
+
+      const entry = { name, phone, email, joinedAt: new Date().toISOString() };
+      const members = JSON.parse(localStorage.getItem('signupMembers') || '[]');
+      members.unshift(entry);
+      localStorage.setItem('signupMembers', JSON.stringify(members.slice(0, 100)));
+      localStorage.setItem('signupComplete', '1');
+
+      signupDoneMessage.textContent = `${name}님, AI 번호 추천 서비스 가입 신청이 완료되었습니다. ${email}으로 안내를 보내드릴게요.`;
+      showSignupStep('done');
     });
   </script>
 </body>
