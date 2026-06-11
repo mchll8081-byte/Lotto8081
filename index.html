@@ -2,20 +2,21 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>로또 추첨기</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="ferrari-theme.css">
+  <link rel="stylesheet" href="ios-theme.css">
 </head>
-<body>
+<body class="ios-app">
 
   <header class="site-hero">
     <div class="container">
       <p class="caption-upper">Lotto 6/45</p>
       <div class="logo">
-        <div class="logo-icon">●</div>
+        <div class="logo-icon" aria-hidden="true">6</div>
         <h1>로또 추첨기</h1>
       </div>
       <p class="subtitle">1부터 45까지의 숫자 중 6개 + 보너스 번호 1개를 무작위로 추첨합니다</p>
