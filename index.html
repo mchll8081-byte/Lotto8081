@@ -37,7 +37,7 @@
             <div class="exit-ball" id="exitBall"></div>
           </div>
         </div>
-        <p class="draw-status" id="drawStatus">추첨 버튼을 눌러 구슬통에서 번호를 뽑아보세요</p>
+        <p class="draw-status" id="drawStatus">출생년도를 입력한 뒤 추첨 버튼을 눌러 주세요</p>
         <div class="result-area">
           <p class="machine-label">추첨 결과</p>
           <div class="balls-row" id="ballsRow">
@@ -76,6 +76,12 @@
               <option value="slow">천천히</option>
             </select>
           </div>
+        </div>
+        <div class="birth-year-field">
+          <label for="birthYear">출생년도</label>
+          <input type="number" id="birthYear" class="text-input" placeholder="예: 1990" min="1920" inputmode="numeric">
+          <p class="field-hint">로또는 만 19세 이상만 구매할 수 있습니다</p>
+          <p class="field-error" id="birthYearError" hidden></p>
         </div>
         <button class="btn-draw" id="drawBtn">번호 추첨</button>
       </div>
@@ -126,6 +132,7 @@
         <li>21~30: 빨간색</li>
         <li>31~40: 회색</li>
         <li>41~45: 초록색</li>
+        <li>번호 추첨 전 출생년도를 입력해야 하며, 만 19세 미만은 이용할 수 없습니다</li>
         <li>보너스 번호는 당첨 6개 번호에 포함되지 않은 숫자 중 1개를 추첨합니다</li>
         <li>역대 당첨번호는 1회(2002.12.07)부터 최신 회차까지 제공됩니다</li>
       </ul>
@@ -150,9 +157,14 @@
     const historyList = document.getElementById('historyList');
     const setCountSelect = document.getElementById('setCount');
     const animSpeedSelect = document.getElementById('animSpeed');
+    const birthYearInput = document.getElementById('birthYear');
+    const birthYearError = document.getElementById('birthYearError');
 
     let isDrawing = false;
     let historyCount = 0;
+
+    const MIN_BIRTH_YEAR = 1920;
+    const MIN_AGE = 19;
 
     const speedMap = {
       fast: { roll: 550, cycle: 35, tumble: 400, reveal: 120, gap: 80 },
@@ -168,6 +180,45 @@
       if (num <= 30) return 'range-3';
       if (num <= 40) return 'range-4';
       return 'range-5';
+    }
+
+    function getCurrentYear() {
+      return new Date().getFullYear();
+    }
+
+    function validateBirthYear() {
+      const raw = birthYearInput.value.trim();
+      const year = parseInt(raw, 10);
+      const currentYear = getCurrentYear();
+
+      birthYearInput.max = currentYear;
+
+      if (!raw) {
+        return { ok: false, message: '출생년도를 입력해 주세요.' };
+      }
+      if (Number.isNaN(year) || year < MIN_BIRTH_YEAR || year > currentYear) {
+        return { ok: false, message: `${MIN_BIRTH_YEAR}년부터 ${currentYear}년 사이로 입력해 주세요.` };
+      }
+
+      const age = currentYear - year;
+      if (age < MIN_AGE) {
+        return { ok: false, message: `만 ${MIN_AGE}세 이상만 추첨할 수 있습니다. (입력 기준 만 ${age}세)` };
+      }
+
+      return { ok: true, year };
+    }
+
+    function showBirthYearError(message) {
+      birthYearError.textContent = message;
+      birthYearError.hidden = false;
+      birthYearInput.classList.add('invalid');
+      drawStatus.textContent = message;
+    }
+
+    function clearBirthYearError() {
+      birthYearError.hidden = true;
+      birthYearError.textContent = '';
+      birthYearInput.classList.remove('invalid');
     }
 
     function generateNumbers() {
@@ -239,7 +290,7 @@
       exitBall.className = 'exit-ball';
       exitBall.textContent = '';
       setDrumTumbling(false);
-      drawStatus.textContent = '추첨 버튼을 눌러 구슬통에서 번호를 뽑아보세요';
+      drawStatus.textContent = '출생년도를 입력한 뒤 추첨 버튼을 눌러 주세요';
       initDrumBalls();
     }
 
@@ -321,7 +372,7 @@
       drawStatus.textContent = '추첨이 완료되었습니다!';
     }
 
-    function addToHistory({ main, bonus }) {
+    function addToHistory({ main, bonus, birthYear }) {
       historyCount++;
       const item = document.createElement('div');
       item.className = 'history-item';
@@ -331,6 +382,7 @@
 
       item.innerHTML = `
         <span class="history-index">#${historyCount}</span>
+        <span class="history-birth">${birthYear}년생</span>
         <div class="history-balls">
           ${main.map(n => `<span class="mini-ball ${getColorClass(n)}">${n}</span>`).join('')}
           <span class="history-plus">+</span>
@@ -344,10 +396,19 @@
 
     async function draw() {
       if (isDrawing) return;
+
+      const birthCheck = validateBirthYear();
+      if (!birthCheck.ok) {
+        showBirthYearError(birthCheck.message);
+        return;
+      }
+      clearBirthYearError();
+
       isDrawing = true;
       drawBtn.disabled = true;
+      birthYearInput.disabled = true;
       drawBtn.textContent = '추첨 중...';
-      drawStatus.textContent = '구슬통에서 구슬을 섞는 중...';
+      drawStatus.textContent = `${birthCheck.year}년생 — 구슬통에서 구슬을 섞는 중...`;
 
       const sets = parseInt(setCountSelect.value, 10);
       const speed = speedMap[animSpeedSelect.value];
@@ -355,7 +416,7 @@
       for (let s = 0; s < sets; s++) {
         const result = generateNumbers();
         await animateDraw(result);
-        addToHistory(result);
+        addToHistory({ ...result, birthYear: birthCheck.year });
 
         if (s < sets - 1) {
           await sleep(speed.gap);
@@ -365,11 +426,19 @@
       }
 
       drawBtn.disabled = false;
+      birthYearInput.disabled = false;
       drawBtn.textContent = '번호 추첨';
       isDrawing = false;
     }
 
     drawBtn.addEventListener('click', draw);
+
+    birthYearInput.addEventListener('input', () => {
+      if (!birthYearError.hidden) {
+        const check = validateBirthYear();
+        if (check.ok) clearBirthYearError();
+      }
+    });
 
     clearBtn.addEventListener('click', () => {
       historyList.innerHTML = '';
