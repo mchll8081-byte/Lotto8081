@@ -3,6 +3,9 @@
   "functions": {
     "api/recommend.js": {
       "maxDuration": 30
+    },
+    "api/subscribe.js": {
+      "maxDuration": 15
     }
   }
 }

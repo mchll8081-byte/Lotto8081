@@ -1030,13 +1030,14 @@
       }
     });
 
-    signupForm.addEventListener('submit', (e) => {
+    signupForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       signupFormError.hidden = true;
 
       const name = document.getElementById('signupName').value.trim();
       const phone = document.getElementById('signupPhone').value.trim();
       const email = document.getElementById('signupEmail').value.trim();
+      const submitBtn = signupForm.querySelector('.signup-submit');
 
       if (name.length < 2) {
         signupFormError.textContent = '이름을 2자 이상 입력해 주세요.';
@@ -1054,14 +1055,35 @@
         return;
       }
 
-      const entry = { name, phone, email, joinedAt: new Date().toISOString() };
-      const members = JSON.parse(localStorage.getItem('signupMembers') || '[]');
-      members.unshift(entry);
-      localStorage.setItem('signupMembers', JSON.stringify(members.slice(0, 100)));
-      localStorage.setItem('signupComplete', '1');
+      if (location.protocol === 'file:') {
+        signupFormError.textContent = '가입 저장은 Vercel 배포 URL에서만 가능합니다.';
+        signupFormError.hidden = false;
+        return;
+      }
 
-      signupDoneMessage.textContent = `${name}님, AI 번호 추천 서비스 가입 신청이 완료되었습니다. ${email}으로 안내를 보내드릴게요.`;
-      showSignupStep('done');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '저장 중...';
+
+      try {
+        const response = await fetch(`${location.origin}/api/subscribe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, phone, email }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || '가입 저장에 실패했습니다.');
+
+        localStorage.setItem('signupComplete', '1');
+        signupDoneMessage.textContent = `${name}님, AI 번호 추천 서비스 가입 신청이 완료되었습니다. ${email}으로 안내를 보내드릴게요.`;
+        showSignupStep('done');
+      } catch (err) {
+        signupFormError.textContent = err.message || '가입 저장 중 오류가 발생했습니다.';
+        signupFormError.hidden = false;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '가입 신청하기';
+      }
     });
   </script>
 </body>
