@@ -98,6 +98,67 @@
       <div class="history-list" id="historyList"></div>
     </section>
 
+    <section class="chat-section" id="chatPanel" hidden>
+      <div class="chat-header">
+        <div>
+          <p class="caption-upper chat-caption">AI Recommend</p>
+          <h2 class="chat-title">번호 추천 상담</h2>
+        </div>
+        <button type="button" class="chat-close" id="chatClose" aria-label="접기">접기</button>
+      </div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-actions">
+        <button type="button" class="btn-draw chat-recommend-btn" id="chatRecommendBtn">다시 추천받기</button>
+        <form class="chat-form" id="chatForm">
+          <input type="text" id="chatInput" class="text-input chat-input" placeholder="추가 질문을 입력하세요..." maxlength="500" autocomplete="off">
+          <button type="submit" class="btn-outline chat-send">전송</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="testimonials">
+      <div class="testimonials-header">
+        <p class="caption-upper">Winner Stories</p>
+        <h2>추천 서비스 이용 후기</h2>
+        <p class="testimonials-sub">AI 번호 추천 서비스를 이용한 회원들의 이야기입니다</p>
+      </div>
+      <div class="testimonials-grid">
+        <article class="review-card">
+          <div class="review-badge">1등 당첨</div>
+          <p class="review-text">「AI 번호 추천」으로 받은 번호 그대로 구매했는데 1등에 당첨됐어요! 출생년도와 통계를 반영해 준다는 게 신기했고, 설명도 자세해서 믿고 이용했습니다.</p>
+          <div class="review-author">
+            <span class="review-name">김민수</span>
+            <span class="review-meta">38세 · 서울 · 2025년 11월</span>
+          </div>
+        </article>
+        <article class="review-card">
+          <div class="review-badge">1등 당첨</div>
+          <p class="review-text">매주 AI 추천 번호를 받아보고 있는데, 드디어 1등 당첨의 꿈을 이뤘습니다. 역대 고빈도 번호 분석이 정말 도움이 됐어요. 주변에도 추천하고 있습니다!</p>
+          <div class="review-author">
+            <span class="review-name">이지영</span>
+            <span class="review-meta">45세 · 부산 · 2026년 1월</span>
+          </div>
+        </article>
+        <article class="review-card">
+          <div class="review-badge">1등 당첨</div>
+          <p class="review-text">처음엔 반신반의했는데, AI가 추천한 번호로 1등에 당첨됐습니다. 출생년도 기반 추천이 저한테 맞는 것 같아요. 가입하길 정말 잘했습니다.</p>
+          <div class="review-author">
+            <span class="review-name">박준호</span>
+            <span class="review-meta">52세 · 대구 · 2025년 9월</span>
+          </div>
+        </article>
+        <article class="review-card">
+          <div class="review-badge">1등 당첨</div>
+          <p class="review-text">동행복권 통계와 AI 분석을 결합한 추천이 인상적이었어요. 3회 추천 받은 뒤 1등 당첨! 번호마다 추천 이유를 알려줘서 더 신뢰가 갔습니다.</p>
+          <div class="review-author">
+            <span class="review-name">최소라</span>
+            <span class="review-meta">29세 · 인천 · 2026년 3월</span>
+          </div>
+        </article>
+      </div>
+      <p class="testimonials-disclaimer">※ 위 후기는 서비스 홍보를 위한 예시 콘텐츠입니다.</p>
+    </section>
+
   </div>
 
   <section class="band-light">
@@ -144,25 +205,7 @@
     </aside>
   </div>
 
-  <div class="chat-panel" id="chatPanel" hidden>
-    <div class="chat-header">
-      <div>
-        <p class="caption-upper chat-caption">AI Recommend</p>
-        <h3 class="chat-title">번호 추천 상담</h3>
-      </div>
-      <button type="button" class="chat-close" id="chatClose" aria-label="닫기">×</button>
-    </div>
-    <div class="chat-messages" id="chatMessages"></div>
-    <div class="chat-actions">
-      <button type="button" class="btn-draw chat-recommend-btn" id="chatRecommendBtn">다시 추천받기</button>
-      <form class="chat-form" id="chatForm">
-        <input type="text" id="chatInput" class="text-input chat-input" placeholder="추가 질문을 입력하세요..." maxlength="500" autocomplete="off">
-        <button type="submit" class="btn-outline chat-send">전송</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="modal-overlay" id="signupModal" hidden>
+  <div class="modal-overlay" id="signupModal" hidden aria-hidden="true">
     <div class="modal-card" role="dialog" aria-labelledby="signupModalTitle" aria-modal="true">
       <button type="button" class="modal-close" id="signupModalClose" aria-label="닫기">×</button>
 
@@ -173,32 +216,6 @@
         <div class="modal-actions">
           <button type="button" class="btn-draw" id="signupYesBtn">가입하기</button>
           <button type="button" class="btn-outline modal-btn-secondary" id="signupNoBtn">나중에 할게요</button>
-        </div>
-        <div class="modal-testimonials">
-          <p class="modal-testimonials-title">이용 후기</p>
-          <div class="modal-reviews">
-            <article class="modal-review">
-              <span class="review-badge">1등 당첨</span>
-              <p class="review-text">「AI 번호 추천」으로 받은 번호 그대로 구매했는데 1등에 당첨됐어요! 출생년도와 통계를 반영해 준다는 게 신기했습니다.</p>
-              <span class="review-meta">김민수 · 38세 · 서울</span>
-            </article>
-            <article class="modal-review">
-              <span class="review-badge">1등 당첨</span>
-              <p class="review-text">매주 AI 추천 번호를 받아보고 있는데, 드디어 1등 당첨의 꿈을 이뤘습니다. 역대 고빈도 번호 분석이 정말 도움이 됐어요.</p>
-              <span class="review-meta">이지영 · 45세 · 부산</span>
-            </article>
-            <article class="modal-review">
-              <span class="review-badge">1등 당첨</span>
-              <p class="review-text">처음엔 반신반의했는데, AI가 추천한 번호로 1등에 당첨됐습니다. 출생년도 기반 추천이 저한테 맞는 것 같아요.</p>
-              <span class="review-meta">박준호 · 52세 · 대구</span>
-            </article>
-            <article class="modal-review">
-              <span class="review-badge">1등 당첨</span>
-              <p class="review-text">동행복권 통계와 AI 분석을 결합한 추천이 인상적이었어요. 3회 추천 받은 뒤 1등 당첨! 번호마다 추천 이유를 알려줘서 신뢰가 갔습니다.</p>
-              <span class="review-meta">최소라 · 29세 · 인천</span>
-            </article>
-          </div>
-          <p class="testimonials-disclaimer">※ 위 후기는 서비스 홍보를 위한 예시 콘텐츠입니다.</p>
         </div>
       </div>
 
@@ -867,7 +884,7 @@
       const birthCheck = validateBirthYear();
       if (!birthCheck.ok) {
         showBirthYearError(birthCheck.message);
-        if (!chatPanel.hidden) {
+        if (isChatOpen()) {
           appendChatMessage('assistant', birthCheck.message + ' 출생년도 입력란을 확인해 주세요.');
         }
         return;
@@ -932,6 +949,10 @@
       }
     }
 
+    function isChatOpen() {
+      return chatPanel.classList.contains('is-open');
+    }
+
     function openChat({ reset = false } = {}) {
       chatPanel.hidden = false;
       chatPanel.classList.add('is-open');
@@ -945,11 +966,14 @@
         appendChatMessage('assistant', '안녕하세요. 동행복권 역대 당첨번호 빈도와 입력하신 출생년도를 분석해 로또 번호를 추천해 드립니다.');
       }
       scrollChatToBottom();
+      requestAnimationFrame(() => {
+        chatPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     }
 
     function closeChat() {
-      chatPanel.hidden = true;
       chatPanel.classList.remove('is-open');
+      chatPanel.setAttribute('hidden', '');
     }
 
     async function startRecommendationFlow() {
@@ -998,24 +1022,29 @@
       signupForm.reset();
       signupFormError.hidden = true;
       signupModal.removeAttribute('hidden');
+      signupModal.setAttribute('aria-hidden', 'false');
       signupModal.classList.add('is-open');
-      document.body.style.overflow = 'hidden';
+      document.body.classList.add('modal-open');
+      requestAnimationFrame(() => {
+        document.getElementById('signupYesBtn').focus();
+      });
     }
 
     function closeSignupModal() {
       signupModal.classList.remove('is-open');
       signupModal.setAttribute('hidden', '');
-      document.body.style.overflow = '';
+      signupModal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('modal-open');
     }
 
     function scheduleSignupPrompt() {
-      if (localStorage.getItem('signupComplete')) return;
+      if (sessionStorage.getItem('signupComplete')) return;
 
       if (signupPromptTimer) clearTimeout(signupPromptTimer);
       signupPromptTimer = setTimeout(() => {
         signupPromptTimer = null;
         openSignupModal();
-      }, 900);
+      }, 600);
     }
 
     function validatePhone(phone) {
@@ -1087,7 +1116,7 @@
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || '가입 저장에 실패했습니다.');
 
-        localStorage.setItem('signupComplete', '1');
+        sessionStorage.setItem('signupComplete', '1');
         signupDoneMessage.textContent = `${name}님, AI 번호 추천 서비스 가입 신청이 완료되었습니다. ${email}으로 안내를 보내드릴게요.`;
         showSignupStep('done');
       } catch (err) {
