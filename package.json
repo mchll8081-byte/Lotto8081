@@ -1,8 +1,5 @@
 {
   "name": "lotto8081",
   "private": true,
-  "description": "로또 6/45 추첨기 및 AI 번호 추천 챗봇",
-  "dependencies": {
-    "@supabase/supabase-js": "^2.49.8"
-  }
+  "description": "로또 6/45 추첨기 및 AI 번호 추천 챗봇"
 }

@@ -255,6 +255,23 @@
     const MIN = 1;
     const MAX = 45;
     const COUNT = 6;
+    const VERCEL_API_ORIGIN = 'https://lotto8081.vercel.app';
+
+    function getApiOrigin() {
+      if (location.protocol === 'file:') return VERCEL_API_ORIGIN;
+      if (location.hostname.includes('vercel.app')) return location.origin;
+      return VERCEL_API_ORIGIN;
+    }
+
+    async function parseApiResponse(response) {
+      const text = await response.text();
+      if (!text) return {};
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new Error(`서버 응답 오류 (${response.status}). API 배포 URL을 확인해 주세요.`);
+      }
+    }
 
     const ballsRow = document.getElementById('ballsRow');
     const bonusSection = document.getElementById('bonusSection');
@@ -875,7 +892,7 @@
 
     function getRecommendApiUrl() {
       if (location.protocol === 'file:') return null;
-      return `${location.origin}/api/recommend`;
+      return `${getApiOrigin()}/api/recommend`;
     }
 
     async function requestRecommendation(message = '') {
@@ -1097,24 +1114,19 @@
         return;
       }
 
-      if (location.protocol === 'file:') {
-        signupFormError.textContent = '가입 저장은 Vercel 배포 URL에서만 가능합니다.';
-        signupFormError.hidden = false;
-        return;
-      }
-
       submitBtn.disabled = true;
       submitBtn.textContent = '저장 중...';
 
       try {
-        const response = await fetch(`${location.origin}/api/subscribe`, {
+        const response = await fetch(`${getApiOrigin()}/api/subscribe`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, phone, email }),
         });
 
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || '가입 저장에 실패했습니다.');
+        const data = await parseApiResponse(response);
+        if (!response.ok) throw new Error(data.error || `가입 저장에 실패했습니다. (${response.status})`);
+        if (!data.success || !data.id) throw new Error('가입은 완료됐으나 저장 확인에 실패했습니다. 잠시 후 다시 시도해 주세요.');
 
         sessionStorage.setItem('signupComplete', '1');
         signupDoneMessage.textContent = `${name}님, AI 번호 추천 서비스 가입 신청이 완료되었습니다. ${email}으로 안내를 보내드릴게요.`;
