@@ -1,0 +1,532 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로또 추첨기</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="ferrari-theme.css">
+</head>
+<body>
+
+  <header class="site-hero">
+    <div class="container">
+      <p class="caption-upper">Lotto 6/45</p>
+      <div class="logo">
+        <div class="logo-icon">●</div>
+        <h1>로또 추첨기</h1>
+      </div>
+      <p class="subtitle">1부터 45까지의 숫자 중 6개 + 보너스 번호 1개를 무작위로 추첨합니다</p>
+    </div>
+  </header>
+
+  <div class="container">
+    <main class="machine">
+      <div class="draw-stage">
+        <div class="drum-assembly">
+          <div class="drum" id="drum">
+            <div class="drum-inner" id="drumInner"></div>
+          </div>
+          <div class="drum-base"></div>
+          <div class="chute">
+            <div class="chute-neck"></div>
+            <div class="chute-track"></div>
+            <div class="chute-tray"></div>
+            <div class="exit-ball" id="exitBall"></div>
+          </div>
+        </div>
+        <p class="draw-status" id="drawStatus">추첨 버튼을 눌러 구슬통에서 번호를 뽑아보세요</p>
+        <div class="result-area">
+          <p class="machine-label">추첨 결과</p>
+          <div class="balls-row" id="ballsRow">
+            <div class="ball placeholder">?</div>
+            <div class="ball placeholder">?</div>
+            <div class="ball placeholder">?</div>
+            <div class="ball placeholder">?</div>
+            <div class="ball placeholder">?</div>
+            <div class="ball placeholder">?</div>
+          </div>
+          <div class="bonus-section" id="bonusSection">
+            <span class="bonus-divider">+</span>
+            <div class="bonus-wrap">
+              <p class="bonus-label">보너스</p>
+              <div class="ball placeholder" id="bonusBall">?</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="options">
+          <div class="option-group">
+            <label for="setCount">추첨 세트</label>
+            <select id="setCount">
+              <option value="1">1세트</option>
+              <option value="3">3세트</option>
+              <option value="5">5세트</option>
+            </select>
+          </div>
+          <div class="option-group">
+            <label for="animSpeed">속도</label>
+            <select id="animSpeed">
+              <option value="fast">빠르게</option>
+              <option value="normal" selected>보통</option>
+              <option value="slow">천천히</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-draw" id="drawBtn">번호 추첨</button>
+      </div>
+    </main>
+
+    <section class="history">
+      <div class="history-header">
+        <h2>추첨 기록</h2>
+        <button class="btn-outline btn-clear" id="clearBtn">기록 지우기</button>
+      </div>
+      <div class="history-list" id="historyList"></div>
+    </section>
+
+  </div>
+
+  <section class="band-light">
+    <div class="container">
+    <section class="past-results">
+      <div class="past-header">
+        <h2>역대 1등 당첨번호</h2>
+        <span class="past-count" id="pastCount"></span>
+      </div>
+
+      <div class="latest-card" id="latestCard"></div>
+
+      <div class="past-search">
+        <input type="number" id="drawSearch" placeholder="회차 검색 (예: 1000)" min="1">
+        <input type="number" id="numberSearch" placeholder="포함 번호 (예: 7)" min="1" max="45">
+      </div>
+
+      <div class="past-list" id="pastList"></div>
+
+      <div class="pagination">
+        <button class="btn-outline" id="prevPage">이전</button>
+        <span id="pageInfo">1 / 1</span>
+        <button class="btn-outline" id="nextPage">다음</button>
+      </div>
+    </section>
+    </div>
+  </section>
+
+  <div class="container">
+    <aside class="rules">
+      <h3>로또 번호 색상 안내</h3>
+      <ul>
+        <li>1~10: 노란색</li>
+        <li>11~20: 파란색</li>
+        <li>21~30: 빨간색</li>
+        <li>31~40: 회색</li>
+        <li>41~45: 초록색</li>
+        <li>보너스 번호는 당첨 6개 번호에 포함되지 않은 숫자 중 1개를 추첨합니다</li>
+        <li>역대 당첨번호는 1회(2002.12.07)부터 최신 회차까지 제공됩니다</li>
+      </ul>
+    </aside>
+  </div>
+
+  <script src="lotto-data.js"></script>
+  <script>
+    const MIN = 1;
+    const MAX = 45;
+    const COUNT = 6;
+
+    const ballsRow = document.getElementById('ballsRow');
+    const bonusSection = document.getElementById('bonusSection');
+    const bonusBall = document.getElementById('bonusBall');
+    const drum = document.getElementById('drum');
+    const drumInner = document.getElementById('drumInner');
+    const exitBall = document.getElementById('exitBall');
+    const drawStatus = document.getElementById('drawStatus');
+    const drawBtn = document.getElementById('drawBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const historyList = document.getElementById('historyList');
+    const setCountSelect = document.getElementById('setCount');
+    const animSpeedSelect = document.getElementById('animSpeed');
+
+    let isDrawing = false;
+    let historyCount = 0;
+
+    const speedMap = {
+      fast: { roll: 550, cycle: 35, tumble: 400, reveal: 120, gap: 80 },
+      normal: { roll: 900, cycle: 55, tumble: 700, reveal: 280, gap: 200 },
+      slow: { roll: 1400, cycle: 80, tumble: 1100, reveal: 500, gap: 350 },
+    };
+
+    const TUMBLE_COUNT = 28;
+
+    function getColorClass(num) {
+      if (num <= 10) return 'range-1';
+      if (num <= 20) return 'range-2';
+      if (num <= 30) return 'range-3';
+      if (num <= 40) return 'range-4';
+      return 'range-5';
+    }
+
+    function generateNumbers() {
+      const pool = Array.from({ length: MAX }, (_, i) => i + 1);
+      const main = [];
+      for (let i = 0; i < COUNT; i++) {
+        const idx = Math.floor(Math.random() * pool.length);
+        main.push(pool.splice(idx, 1)[0]);
+      }
+      const bonusIdx = Math.floor(Math.random() * pool.length);
+      return {
+        main: main.sort((a, b) => a - b),
+        bonus: pool[bonusIdx],
+      };
+    }
+
+    function createBallElement(num, isPlaceholder = false, isBonus = false) {
+      const ball = document.createElement('div');
+      ball.className = 'ball' + (isPlaceholder ? ' placeholder' : '') + (isBonus ? ' bonus' : '');
+      if (!isPlaceholder) {
+        ball.classList.add(getColorClass(num));
+        ball.textContent = num;
+      } else {
+        ball.textContent = '?';
+      }
+      return ball;
+    }
+
+    function initDrumBalls() {
+      drumInner.innerHTML = '';
+      const radius = 72;
+
+      for (let i = 0; i < TUMBLE_COUNT; i++) {
+        const num = Math.floor(Math.random() * MAX) + 1;
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Math.random() * radius;
+        const x = 78 + Math.cos(angle) * dist;
+        const y = 78 + Math.sin(angle) * dist;
+        const ball = document.createElement('div');
+        ball.className = `tumble-ball ${getColorClass(num)}`;
+        ball.textContent = num;
+        ball.style.left = `${x}px`;
+        ball.style.top = `${y}px`;
+        ball.style.setProperty('--x1', `${(Math.random() - 0.5) * 18}px`);
+        ball.style.setProperty('--y1', `${(Math.random() - 0.5) * 18}px`);
+        ball.style.setProperty('--x2', `${(Math.random() - 0.5) * 36}px`);
+        ball.style.setProperty('--y2', `${(Math.random() - 0.5) * 36}px`);
+        ball.style.setProperty('--dur', `${0.35 + Math.random() * 0.45}s`);
+        drumInner.appendChild(ball);
+      }
+    }
+
+    function setDrumTumbling(active) {
+      drum.classList.toggle('tumbling', active);
+    }
+
+    function setupResultSlots() {
+      ballsRow.innerHTML = '';
+      for (let i = 0; i < COUNT; i++) {
+        ballsRow.appendChild(createBallElement(null, true));
+      }
+    }
+
+    function resetBalls() {
+      setupResultSlots();
+      bonusSection.classList.remove('visible');
+      bonusBall.className = 'ball placeholder';
+      bonusBall.textContent = '?';
+      exitBall.className = 'exit-ball';
+      exitBall.textContent = '';
+      setDrumTumbling(false);
+      drawStatus.textContent = '추첨 버튼을 눌러 구슬통에서 번호를 뽑아보세요';
+      initDrumBalls();
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function setExitBallNumber(num) {
+      exitBall.className = 'exit-ball show ' + getColorClass(num);
+      exitBall.textContent = num;
+    }
+
+    async function ejectBall(finalNum, speed, label) {
+      drawStatus.textContent = label;
+      setDrumTumbling(true);
+      await sleep(speed.tumble * 0.4);
+
+      setExitBallNumber(Math.floor(Math.random() * MAX) + 1);
+      exitBall.style.setProperty('--roll-dur', `${speed.roll}ms`);
+      exitBall.classList.remove('rolling');
+      void exitBall.offsetWidth;
+      exitBall.classList.add('rolling');
+
+      let cycles = 0;
+      const maxCycles = Math.floor(speed.roll / speed.cycle) - 2;
+      const cycleTimer = setInterval(() => {
+        setExitBallNumber(Math.floor(Math.random() * MAX) + 1);
+        cycles++;
+        if (cycles >= maxCycles) {
+          clearInterval(cycleTimer);
+          setExitBallNumber(finalNum);
+        }
+      }, speed.cycle);
+
+      await sleep(speed.roll + 150);
+      clearInterval(cycleTimer);
+      setExitBallNumber(finalNum);
+      await sleep(speed.reveal * 0.5);
+    }
+
+    function revealResultSlot(index, num) {
+      const ball = createBallElement(num);
+      ball.classList.add('from-chute');
+      ballsRow.replaceChild(ball, ballsRow.children[index]);
+      requestAnimationFrame(() => ball.classList.add('visible'));
+    }
+
+    function hideExitBall() {
+      exitBall.classList.remove('show', 'rolling');
+      exitBall.textContent = '';
+    }
+
+    async function animateDraw({ main, bonus }) {
+      const speed = speedMap[animSpeedSelect.value];
+      setupResultSlots();
+      bonusSection.classList.remove('visible');
+      bonusBall.className = 'ball placeholder';
+      bonusBall.textContent = '?';
+      hideExitBall();
+
+      for (let i = 0; i < COUNT; i++) {
+        await ejectBall(main[i], speed, `구슬통에서 ${i + 1}번째 번호를 뽑는 중...`);
+        revealResultSlot(i, main[i]);
+        hideExitBall();
+        await sleep(speed.reveal);
+      }
+
+      setDrumTumbling(false);
+      await sleep(speed.gap * 0.5);
+      bonusSection.classList.add('visible');
+
+      await ejectBall(bonus, speed, '보너스 번호를 뽑는 중...');
+      bonusBall.className = 'ball from-chute ' + getColorClass(bonus) + ' bonus';
+      bonusBall.textContent = bonus;
+      requestAnimationFrame(() => bonusBall.classList.add('visible'));
+      hideExitBall();
+
+      setDrumTumbling(false);
+      drawStatus.textContent = '추첨이 완료되었습니다!';
+    }
+
+    function addToHistory({ main, bonus }) {
+      historyCount++;
+      const item = document.createElement('div');
+      item.className = 'history-item';
+
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+      item.innerHTML = `
+        <span class="history-index">#${historyCount}</span>
+        <div class="history-balls">
+          ${main.map(n => `<span class="mini-ball ${getColorClass(n)}">${n}</span>`).join('')}
+          <span class="history-plus">+</span>
+          <span class="mini-ball bonus ${getColorClass(bonus)}">${bonus}</span>
+        </div>
+        <span class="history-time">${timeStr}</span>
+      `;
+
+      historyList.prepend(item);
+    }
+
+    async function draw() {
+      if (isDrawing) return;
+      isDrawing = true;
+      drawBtn.disabled = true;
+      drawBtn.textContent = '추첨 중...';
+      drawStatus.textContent = '구슬통에서 구슬을 섞는 중...';
+
+      const sets = parseInt(setCountSelect.value, 10);
+      const speed = speedMap[animSpeedSelect.value];
+
+      for (let s = 0; s < sets; s++) {
+        const result = generateNumbers();
+        await animateDraw(result);
+        addToHistory(result);
+
+        if (s < sets - 1) {
+          await sleep(speed.gap);
+          resetBalls();
+          await sleep(200);
+        }
+      }
+
+      drawBtn.disabled = false;
+      drawBtn.textContent = '번호 추첨';
+      isDrawing = false;
+    }
+
+    drawBtn.addEventListener('click', draw);
+
+    clearBtn.addEventListener('click', () => {
+      historyList.innerHTML = '';
+      historyCount = 0;
+    });
+
+    drawBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') draw();
+    });
+
+    initDrumBalls();
+
+    const PAGE_SIZE = 30;
+    let pastData = [];
+    let filteredPast = [];
+    let currentPage = 1;
+
+    const pastCount = document.getElementById('pastCount');
+    const latestCard = document.getElementById('latestCard');
+    const pastList = document.getElementById('pastList');
+    const drawSearch = document.getElementById('drawSearch');
+    const numberSearch = document.getElementById('numberSearch');
+    const prevPage = document.getElementById('prevPage');
+    const nextPage = document.getElementById('nextPage');
+    const pageInfo = document.getElementById('pageInfo');
+
+    function formatDate(isoDate) {
+      const d = new Date(isoDate);
+      return d.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    }
+
+    function formatPrize(amount) {
+      if (!amount) return '-';
+      const billion = Math.floor(amount / 100000000);
+      const million = Math.floor((amount % 100000000) / 10000);
+      if (billion > 0) return `${billion}억 ${million.toLocaleString()}만원`;
+      return `${million.toLocaleString()}만원`;
+    }
+
+    function getFirstPrize(draw) {
+      if (draw.divisions?.[0]?.prize) return draw.divisions[0];
+      return draw.divisions?.find(d => d.prize && d.winners) || {};
+    }
+
+    function renderBalls(main, bonus, size = 'mini') {
+      const cls = size === 'mini' ? 'mini-ball' : 'ball';
+      return `
+        ${main.map(n => `<span class="${cls} ${getColorClass(n)}">${n}</span>`).join('')}
+        <span class="history-plus">+</span>
+        <span class="${cls} bonus ${getColorClass(bonus)}">${bonus}</span>
+      `;
+    }
+
+    function renderLatestCard(draw) {
+      const firstPrize = getFirstPrize(draw);
+      latestCard.innerHTML = `
+        <span class="latest-badge">최신 회차</span>
+        <div class="latest-meta">
+          <span><strong>${draw.draw_no}회</strong></span>
+          <span>${formatDate(draw.date)}</span>
+          <span>1등 ${firstPrize?.winners ?? '-'}명</span>
+          <span>1등 상금 ${formatPrize(firstPrize?.prize)}</span>
+        </div>
+        <div class="history-balls">${renderBalls(draw.numbers, draw.bonus_no)}</div>
+      `;
+    }
+
+    function renderPastItem(draw) {
+      const firstPrize = getFirstPrize(draw);
+      const winners = firstPrize?.winners;
+
+      return `
+        <div class="past-item">
+          <span class="past-draw">${draw.draw_no}회</span>
+          <div class="past-meta">
+            <span class="past-date">${formatDate(draw.date)}</span>
+            <span class="past-prize">
+              ${formatPrize(firstPrize?.prize)}
+              <span class="past-prize-winners"> · 1등 ${winners ?? '-'}명</span>
+            </span>
+          </div>
+          <div class="past-balls">${renderBalls(draw.numbers, draw.bonus_no)}</div>
+        </div>
+      `;
+    }
+
+    function applyPastFilter() {
+      const drawNo = parseInt(drawSearch.value, 10);
+      const num = parseInt(numberSearch.value, 10);
+
+      filteredPast = pastData.filter(draw => {
+        if (drawNo && draw.draw_no !== drawNo) return false;
+        if (num >= 1 && num <= 45) {
+          const all = [...draw.numbers, draw.bonus_no];
+          if (!all.includes(num)) return false;
+        }
+        return true;
+      });
+
+      currentPage = 1;
+      renderPastList();
+    }
+
+    function renderPastList() {
+      const totalPages = Math.max(1, Math.ceil(filteredPast.length / PAGE_SIZE));
+      currentPage = Math.min(currentPage, totalPages);
+
+      const start = (currentPage - 1) * PAGE_SIZE;
+      const pageItems = filteredPast.slice(start, start + PAGE_SIZE);
+
+      if (pageItems.length === 0) {
+        pastList.innerHTML = '<div class="past-empty">검색 결과가 없습니다</div>';
+      } else {
+        pastList.innerHTML = pageItems.map(renderPastItem).join('');
+      }
+
+      pageInfo.textContent = `${currentPage} / ${totalPages}`;
+      prevPage.disabled = currentPage <= 1;
+      nextPage.disabled = currentPage >= totalPages;
+    }
+
+    function initPastResults() {
+      if (!window.LOTTO_HISTORICAL?.length) {
+        pastCount.textContent = '데이터를 불러올 수 없습니다';
+        pastList.innerHTML = '<div class="past-empty">역대 당첨번호 데이터를 찾을 수 없습니다</div>';
+        return;
+      }
+
+      pastData = [...window.LOTTO_HISTORICAL].sort((a, b) => b.draw_no - a.draw_no);
+      filteredPast = pastData;
+
+      pastCount.textContent = `총 ${pastData.length}회 (1회 ~ ${pastData[0].draw_no}회)`;
+      renderLatestCard(pastData[0]);
+      renderPastList();
+    }
+
+    drawSearch.addEventListener('input', applyPastFilter);
+    numberSearch.addEventListener('input', applyPastFilter);
+
+    prevPage.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderPastList();
+        pastList.scrollTop = 0;
+      }
+    });
+
+    nextPage.addEventListener('click', () => {
+      const totalPages = Math.ceil(filteredPast.length / PAGE_SIZE);
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderPastList();
+        pastList.scrollTop = 0;
+      }
+    });
+
+    initPastResults();
+  </script>
+</body>
+</html>
