@@ -1,3 +1,5 @@
+const { createClient } = require('@supabase/supabase-js');
+
 function validateSignupInput({ name, phone, email }) {
   const trimmedName = (name || '').trim();
   const trimmedPhone = (phone || '').trim();
@@ -30,85 +32,119 @@ function stripQuotes(value) {
   return (value || '').trim().replace(/^["']|["']$/g, '');
 }
 
-function resolveSupabaseConfig() {
-  const rawUrl = process.env.SUPABASE_URL;
-  const supabaseKey = stripQuotes(process.env.SUPABASE_SERVICE_ROLE_KEY);
+function normalizeSupabaseProjectUrl(rawUrl) {
+  let url = stripQuotes(rawUrl);
 
-  if (!rawUrl || !supabaseKey) {
+  if (!url) {
     throw new Error(
-      'Supabase 환경변수가 설정되지 않았습니다. Vercel에 SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY를 등록해 주세요.'
+      'SUPABASE_URL이 비어 있습니다. Vercel 환경변수에 프로젝트 URL을 등록해 주세요.'
     );
   }
 
-  let baseUrl = stripQuotes(rawUrl).replace(/\/+$/, '');
-  baseUrl = baseUrl.replace(/\/rest\/v1(\/.*)?$/i, '');
+  url = url.replace(/\/+$/, '');
+  url = url.replace(/\/rest\/v1.*$/i, '');
 
-  if (/supabase\.com\/dashboard/i.test(baseUrl)) {
+  if (/supabase\.com\/dashboard/i.test(url)) {
     throw new Error(
       'SUPABASE_URL에 대시보드 주소가 들어가 있습니다. Supabase → Project Settings → API → Project URL 값을 사용하세요.'
     );
   }
 
-  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(baseUrl)) {
+  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url)) {
     throw new Error(
-      'SUPABASE_URL 형식이 올바르지 않습니다. 예: https://abcdefgh.supabase.co (/rest/v1 은 붙이지 마세요)'
+      `SUPABASE_URL 형식이 올바르지 않습니다. 현재 값: ${url}. 올바른 예: https://uxixntantwykylxjoabs.supabase.co`
     );
   }
 
-  return {
-    insertUrl: `${baseUrl}/rest/v1/signups`,
-    supabaseKey,
-  };
+  return url;
 }
 
-function mapSupabaseError(status, errText) {
-  let parsed = null;
-  try {
-    parsed = JSON.parse(errText);
-  } catch {
-    parsed = null;
+function normalizeServiceRoleKey(rawKey) {
+  let key = stripQuotes(rawKey);
+
+  if (!key) {
+    throw new Error(
+      'SUPABASE_SERVICE_ROLE_KEY가 비어 있습니다. Supabase → Project Settings → API → service_role 키를 등록해 주세요.'
+    );
   }
 
-  const code = parsed?.code;
-  const message = parsed?.message || errText;
+  if (key.startsWith('Bearer ')) {
+    key = key.slice(7).trim();
+  }
+
+  if (key.length < 100) {
+    throw new Error(
+      'SUPABASE_SERVICE_ROLE_KEY가 너무 짧습니다. anon 키가 아닌 service_role 키인지 확인해 주세요.'
+    );
+  }
+
+  return key;
+}
+
+function createSupabaseAdmin() {
+  const projectUrl = normalizeSupabaseProjectUrl(process.env.SUPABASE_URL);
+  const serviceRoleKey = normalizeServiceRoleKey(process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+  const client = createClient(projectUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+
+  return { client, projectUrl };
+}
+
+function mapSupabaseError(error, projectUrl) {
+  const code = error?.code || '';
+  const message = error?.message || '알 수 없는 오류';
+  const details = error?.details || '';
+  const hint = error?.hint || '';
 
   if (code === 'PGRST125') {
-    return 'Supabase API 경로가 잘못되었습니다. Vercel 환경변수 SUPABASE_URL을 https://프로젝트ID.supabase.co 형식으로 수정한 뒤 재배포해 주세요.';
+    return [
+      'Supabase API 경로 오류(PGRST125)입니다.',
+      `등록된 프로젝트 URL: ${projectUrl}`,
+      'Vercel SUPABASE_URL을 https://uxixntantwykylxjoabs.supabase.co 처럼 /rest/v1 없이 설정하고 재배포해 주세요.',
+    ].join(' ');
   }
 
   if (code === 'PGRST205' || /Could not find the table/i.test(message)) {
     return 'signups 테이블이 없습니다. Supabase SQL Editor에서 supabase/schema.sql 내용을 실행해 주세요.';
   }
 
-  if (status === 401 || status === 403) {
-    return 'Supabase 인증에 실패했습니다. Vercel의 SUPABASE_SERVICE_ROLE_KEY(service_role) 값을 확인해 주세요.';
+  if (code === '42501' || /permission denied/i.test(message)) {
+    return 'signups 테이블 권한이 없습니다. supabase/schema.sql을 다시 실행해 주세요.';
   }
 
-  return `Supabase 저장 실패 (${status}): ${message}`;
+  if (/Invalid API key/i.test(message)) {
+    return 'Supabase API 키가 올바르지 않습니다. service_role 키를 다시 복사해 Vercel에 등록해 주세요.';
+  }
+
+  return `Supabase 저장 실패: ${message}${details ? ` (${details})` : ''}${hint ? ` — ${hint}` : ''}`;
 }
 
 async function saveSignupToSupabase({ name, phone, email }) {
-  const { insertUrl, supabaseKey } = resolveSupabaseConfig();
+  const { client, projectUrl } = createSupabaseAdmin();
 
-  const response = await fetch(insertUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
-      Prefer: 'return=representation',
-    },
-    body: JSON.stringify({ name, phone, email }),
-  });
+  const { data, error } = await client
+    .from('signups')
+    .insert({ name, phone, email })
+    .select('id, name, phone, email, created_at')
+    .single();
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(mapSupabaseError(response.status, errText));
+  if (error) {
+    console.error('Supabase insert error:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      projectUrl,
+    });
+    throw new Error(mapSupabaseError(error, projectUrl));
   }
 
-  const rows = await response.json();
-  return rows[0] || { name, phone, email };
+  return data;
 }
 
 module.exports = async function handler(req, res) {

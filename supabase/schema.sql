@@ -26,5 +26,9 @@ alter table public.signups enable row level security;
 -- anon/authenticated 사용자는 접근 불가 (API service role key 사용)
 -- service role은 RLS를 우회하므로 별도 policy 불필요
 
+grant usage on schema public to postgres, anon, authenticated, service_role;
+grant all on table public.signups to service_role;
+grant select, insert on table public.signups to service_role;
+
 -- API 스키마 캐시 갱신 (테이블 생성 직후 404가 날 때)
 notify pgrst, 'reload schema';
