@@ -1,5 +1,10 @@
-const MODEL = 'gemini-2.5-flash-lite';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+const { generateLocalRecommendation } = require('./recommend-fallback');
+
+const MODELS = [
+  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash-lite',
+  'gemini-2.0-flash',
+];
 
 function validateNumbers(main, bonus) {
   if (!Array.isArray(main) || main.length !== 6) return false;
@@ -21,7 +26,7 @@ function buildPrompt({ birthYear, age, stats, message, history }) {
 
   const yearDigitSum = String(birthYear).split('').reduce((s, d) => s + Number(d), 0);
   const yearLastTwo = birthYear % 100;
-  const yearMod = ((birthYear % 45) || 45);
+  const yearMod = (birthYear % 45) || 45;
 
   let conversation = '';
   if (history?.length) {
@@ -33,33 +38,33 @@ function buildPrompt({ birthYear, age, stats, message, history }) {
     : '\n\n사용자 요청: 출생년도와 역대 추첨 빈도를 바탕으로 로또 번호 6개와 보너스 1개를 추천해 주세요.';
 
   return `당신은 동행복권 로또6/45 번호 추천 챗봇입니다.
-동행복권 통계 페이지(lt645/stats)와 같은 방식의 역대 당첨번호 빈도를 참고합니다.
 
-## 역대 추첨 통계 (1회~${stats.totalDraws}회, 당첨 6개 번호 기준)
-- 가장 많이 나온 번호 TOP 10: ${top10}
-- 가장 적게 나온 번호 BOTTOM 10: ${bottom10}
-- 빈도 TOP 6: ${top6}
-- 빈도 BOTTOM 6: ${bottom6}
+## 역대 추첨 통계 (1회~${stats.totalDraws}회)
+- TOP 10: ${top10}
+- BOTTOM 10: ${bottom10}
+- TOP 6: ${top6} / BOTTOM 6: ${bottom6}
 
-## 사용자 정보
-- 출생년도: ${birthYear}년 (만 ${age}세)
-- 출생년도 숫자 합: ${yearDigitSum}
-- 출생년도 끝 두 자리: ${yearLastTwo}
-- 출생년도 ÷ 45 나머지(1~45): ${yearMod}
+## 사용자: ${birthYear}년생 (만 ${age}세), 숫자합 ${yearDigitSum}, mod45 ${yearMod}, 끝자리 ${yearLastTwo}
 ${conversation}${userRequest}
 
-## 지침
-1. 역대 추첨 빈도가 높은 번호와 출생년도에서 파생된 숫자를 조합해 추천하세요.
-2. 6개 메인 번호는 1~45 중 중복 없이 오름차순, 보너스는 메인에 없는 번호 1개.
-3. explanation에는 (a) 어떤 고빈도/저빈도 번호를 참고했는지 (b) 출생년도와 어떻게 연결했는지를 한국어로 구체적으로 작성하세요.
-4. 로또는 확률 게임임을 한 문장 포함하세요.
-5. JSON만 출력하세요.
-
-{"main":[6개 정수],"bonus":정수,"explanation":"추천 이유"}`;
+6개 main(1~45, 중복없음, 오름차순) + bonus 1개. explanation은 한국어로 고빈도·출생년도 근거 포함. JSON만:
+{"main":[...],"bonus":N,"explanation":"..."}`;
 }
 
-async function callGemini(apiKey, prompt) {
-  const response = await fetch(GEMINI_URL, {
+function parseGeminiJson(text) {
+  const trimmed = text.trim();
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const match = trimmed.match(/\{[\s\S]*\}/);
+    if (match) return JSON.parse(match[0]);
+    throw new Error('AI 응답 JSON 파싱에 실패했습니다.');
+  }
+}
+
+async function callGeminiModel(apiKey, model, prompt) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -73,10 +78,7 @@ async function callGemini(apiKey, prompt) {
         responseSchema: {
           type: 'object',
           properties: {
-            main: {
-              type: 'array',
-              items: { type: 'integer' },
-            },
+            main: { type: 'array', items: { type: 'integer' } },
             bonus: { type: 'integer' },
             explanation: { type: 'string' },
           },
@@ -86,16 +88,43 @@ async function callGemini(apiKey, prompt) {
     }),
   });
 
+  const errText = !response.ok ? await response.text() : '';
   if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Gemini API error (${response.status}): ${errText.slice(0, 200)}`);
+    const err = new Error(`Gemini ${model} (${response.status}): ${errText.slice(0, 300)}`);
+    err.status = response.status;
+    err.retryable = response.status === 429 || response.status >= 500;
+    throw err;
   }
 
   const data = await response.json();
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) throw new Error('Gemini 응답이 비어 있습니다.');
+  return parseGeminiJson(text);
+}
 
-  return JSON.parse(text);
+async function callGemini(apiKey, prompt) {
+  let lastError;
+  for (const model of MODELS) {
+    try {
+      return await callGeminiModel(apiKey, model, prompt);
+    } catch (err) {
+      lastError = err;
+      if (err.status === 404) continue;
+      if (err.retryable) throw err;
+      throw err;
+    }
+  }
+  throw lastError || new Error('사용 가능한 Gemini 모델이 없습니다.');
+}
+
+function shouldUseFallback(err) {
+  if (!err) return true;
+  const msg = err.message || '';
+  return err.status === 429
+    || err.status >= 500
+    || msg.includes('quota')
+    || msg.includes('Quota')
+    || msg.includes('RESOURCE_EXHAUSTED');
 }
 
 module.exports = async function handler(req, res) {
@@ -105,11 +134,6 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST만 허용됩니다.' });
-
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY 환경변수가 설정되지 않았습니다.' });
-  }
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
@@ -131,20 +155,37 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: '추첨 빈도 통계 데이터가 필요합니다.' });
     }
 
-    const prompt = buildPrompt({ birthYear: year, age, stats, message, history });
-    let result = await callGemini(apiKey, prompt);
+    const apiKey = process.env.GEMINI_API_KEY;
 
-    result.main = [...result.main].sort((a, b) => a - b);
-
-    if (!validateNumbers(result.main, result.bonus)) {
-      throw new Error('AI가 유효하지 않은 번호를 반환했습니다.');
+    if (!apiKey) {
+      const local = generateLocalRecommendation(year, stats, '⚠️ GEMINI_API_KEY가 설정되지 않아 통계 기반 추천을 제공합니다.');
+      return res.status(200).json(local);
     }
 
-    return res.status(200).json({
-      main: result.main,
-      bonus: result.bonus,
-      explanation: result.explanation,
-    });
+    const prompt = buildPrompt({ birthYear: year, age, stats, message, history });
+
+    try {
+      let result = await callGemini(apiKey, prompt);
+      result.main = [...result.main].sort((a, b) => a - b);
+
+      if (!validateNumbers(result.main, result.bonus)) {
+        throw new Error('AI가 유효하지 않은 번호를 반환했습니다.');
+      }
+
+      return res.status(200).json({
+        main: result.main,
+        bonus: result.bonus,
+        explanation: result.explanation,
+        source: 'gemini',
+      });
+    } catch (geminiErr) {
+      console.error('Gemini error:', geminiErr.message);
+      const note = shouldUseFallback(geminiErr)
+        ? '⚠️ AI API 할당량/일시 오류로 통계 기반 추천으로 전환했습니다.'
+        : `⚠️ AI 호출 실패: ${geminiErr.message}`;
+      const local = generateLocalRecommendation(year, stats, note);
+      return res.status(200).json(local);
+    }
   } catch (err) {
     console.error('recommend error:', err);
     return res.status(500).json({ error: err.message || '번호 추천 중 오류가 발생했습니다.' });

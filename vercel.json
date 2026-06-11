@@ -1,5 +1,8 @@
 {
   "version": 2,
-  "buildCommand": null,
-  "outputDirectory": "."
+  "functions": {
+    "api/recommend.js": {
+      "maxDuration": 30
+    }
+  }
 }
