@@ -26,18 +26,75 @@ function validateSignupInput({ name, phone, email }) {
   };
 }
 
-async function saveSignupToSupabase({ name, phone, email }) {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+function stripQuotes(value) {
+  return (value || '').trim().replace(/^["']|["']$/g, '');
+}
 
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Supabase 환경변수(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)가 설정되지 않았습니다.');
+function resolveSupabaseConfig() {
+  const rawUrl = process.env.SUPABASE_URL;
+  const supabaseKey = stripQuotes(process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+  if (!rawUrl || !supabaseKey) {
+    throw new Error(
+      'Supabase 환경변수가 설정되지 않았습니다. Vercel에 SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY를 등록해 주세요.'
+    );
   }
 
-  const response = await fetch(`${supabaseUrl.replace(/\/$/, '')}/rest/v1/signups`, {
+  let baseUrl = stripQuotes(rawUrl).replace(/\/+$/, '');
+  baseUrl = baseUrl.replace(/\/rest\/v1(\/.*)?$/i, '');
+
+  if (/supabase\.com\/dashboard/i.test(baseUrl)) {
+    throw new Error(
+      'SUPABASE_URL에 대시보드 주소가 들어가 있습니다. Supabase → Project Settings → API → Project URL 값을 사용하세요.'
+    );
+  }
+
+  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(baseUrl)) {
+    throw new Error(
+      'SUPABASE_URL 형식이 올바르지 않습니다. 예: https://abcdefgh.supabase.co (/rest/v1 은 붙이지 마세요)'
+    );
+  }
+
+  return {
+    insertUrl: `${baseUrl}/rest/v1/signups`,
+    supabaseKey,
+  };
+}
+
+function mapSupabaseError(status, errText) {
+  let parsed = null;
+  try {
+    parsed = JSON.parse(errText);
+  } catch {
+    parsed = null;
+  }
+
+  const code = parsed?.code;
+  const message = parsed?.message || errText;
+
+  if (code === 'PGRST125') {
+    return 'Supabase API 경로가 잘못되었습니다. Vercel 환경변수 SUPABASE_URL을 https://프로젝트ID.supabase.co 형식으로 수정한 뒤 재배포해 주세요.';
+  }
+
+  if (code === 'PGRST205' || /Could not find the table/i.test(message)) {
+    return 'signups 테이블이 없습니다. Supabase SQL Editor에서 supabase/schema.sql 내용을 실행해 주세요.';
+  }
+
+  if (status === 401 || status === 403) {
+    return 'Supabase 인증에 실패했습니다. Vercel의 SUPABASE_SERVICE_ROLE_KEY(service_role) 값을 확인해 주세요.';
+  }
+
+  return `Supabase 저장 실패 (${status}): ${message}`;
+}
+
+async function saveSignupToSupabase({ name, phone, email }) {
+  const { insertUrl, supabaseKey } = resolveSupabaseConfig();
+
+  const response = await fetch(insertUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      Accept: 'application/json',
       apikey: supabaseKey,
       Authorization: `Bearer ${supabaseKey}`,
       Prefer: 'return=representation',
@@ -47,7 +104,7 @@ async function saveSignupToSupabase({ name, phone, email }) {
 
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(`Supabase 저장 실패 (${response.status}): ${errText.slice(0, 200)}`);
+    throw new Error(mapSupabaseError(response.status, errText));
   }
 
   const rows = await response.json();
